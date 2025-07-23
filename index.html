@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Absensi Paskibra</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background-color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #d60000;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #d60000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="date"] {
+            margin-top: 5px;
+            margin-bottom: 10px;
+            padding: 8px;
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #d60000;
+            color: white;
+        }
+
+        .rekap {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #d60000;
+        }
+
+        .button {
+            margin-top: 20px;
+            background-color: #d60000;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #a50000;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Absensi Paskibra</h1>
+
+        <label for="excelInput">Unggah File Excel (Kolom: No, Nama, Kelas):</label>
+        <input type="file" id="excelInput" accept=".xlsx, .xls" />
+
+        <label for="kegiatan">Kegiatan:</label>
+        <input type="text" id="kegiatan" placeholder="Contoh: Latihan Baris-Berbaris" />
+
+        <label for="tanggal">Tanggal:</label>
+        <input type="date" id="tanggal" />
+
+        <table id="absenTable">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>H</th>
+                    <th>I</th>
+                    <th>A</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="rekap" id="rekapHIA"></div>
+
+        <button class="button" onclick="downloadPDF()">Download PDF</button>
+    </div>
+
+    <!-- XLSX & jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        const excelInput = document.getElementById("excelInput");
+        const absenTableBody = document.querySelector("#absenTable tbody");
+        const rekapDiv = document.getElementById("rekapHIA");
+
+        excelInput.addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                absenTableBody.innerHTML = "";
+
+                json.slice(1).forEach((row, index) => {
+                    if (!row[0]) return;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${row[0]}</td>
+            <td>${row[1]}</td>
+            <td>${row[2]}</td>
+            <td><label><input type="radio" name="absen${index}" value="H"> H</label></td>
+            <td><label><input type="radio" name="absen${index}" value="I"> I</label></td>
+            <td><label><input type="radio" name="absen${index}" value="A"> A</label></td>
+          `;
+                    absenTableBody.appendChild(tr);
+                });
+
+                document.querySelectorAll("input[type=radio]").forEach(radio => {
+                    radio.addEventListener("change", updateRekap);
+                });
+
+                updateRekap();
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        function updateRekap() {
+            const radios = document.querySelectorAll("input[type=radio]:checked");
+            let H = 0, I = 0, A = 0;
+
+            radios.forEach(r => {
+                if (r.value === "H") H++;
+                else if (r.value === "I") I++;
+                else if (r.value === "A") A++;
+            });
+
+            rekapDiv.innerText = `Jumlah: Hadir = ${H}, Izin = ${I}, Alfa = ${A}`;
+        }
+        
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const kegiatan = document.getElementById("kegiatan").value;
+            const tanggal = document.getElementById("tanggal").value;
+
+            if (!kegiatan || !tanggal) {
+                alert("Mohon isi Kegiatan dan Tanggal terlebih dahulu.");
+                return;
+            }
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(12);
+
+            doc.text(`Kegiatan: ${kegiatan}`, 10, 10);
+            doc.text(`Tanggal: ${tanggal}`, 10, 18);
+
+            let startY = 30;
+            const rows = [];
+            const headers = ["No", "Nama", "Kelas", "Absen"];
+            const trs = document.querySelectorAll("#absenTable tbody tr");
+
+            trs.forEach(tr => {
+                const tds = tr.querySelectorAll("td");
+                const absen = tr.querySelector("input[type=radio]:checked");
+                const status = absen ? absen.value : "";
+                rows.push([tds[0].innerText, tds[1].innerText, tds[2].innerText, status]);
+            });
+
+            doc.autoTable({
+                head: [headers],
+                body: rows,
+                startY: startY,
+                styles: {
+                    font: "times",
+                    fontSize: 12,
+                    halign: 'center'
+                },
+                headStyles: {
+                    fillColor: [214, 0, 0], // Merah
+                    textColor: [255, 255, 255], // Putih
+                    fontStyle: 'bold'
+                },
+                theme: "grid"
+            });
+
+
+            doc.save(`Absensi_${tanggal}.pdf`);
+        }
+    </script>
+</body>
+
+</html>
