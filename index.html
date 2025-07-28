@@ -162,6 +162,10 @@
             }
 
             td:nth-child(6)::before {
+                content: "S";
+            }
+
+            td:nth-child(7)::before {
                 content: "A";
             }
         }
@@ -189,6 +193,7 @@
                     <th>Kelas</th>
                     <th>H</th>
                     <th>I</th>
+                    <th>S</th>
                     <th>A</th>
                 </tr>
             </thead>
@@ -231,6 +236,7 @@
             <td>${row[2]}</td>
             <td><label><input type="radio" name="absen${index}" value="H"> H</label></td>
             <td><label><input type="radio" name="absen${index}" value="I"> I</label></td>
+            <td><label><input type="radio" name="absen${index}" value="S"> S</label></td>
             <td><label><input type="radio" name="absen${index}" value="A"> A</label></td>
           `;
                     absenTableBody.appendChild(tr);
@@ -248,15 +254,16 @@
 
         function updateRekap() {
             const radios = document.querySelectorAll("input[type=radio]:checked");
-            let H = 0, I = 0, A = 0;
+            let H = 0, I = 0,S = 0, A = 0;
 
             radios.forEach(r => {
                 if (r.value === "H") H++;
                 else if (r.value === "I") I++;
+                else if (r.value === "S") S++;
                 else if (r.value === "A") A++;
             });
 
-            rekapDiv.innerText = `Jumlah: Hadir = ${H}, Izin = ${I}, Alfa = ${A}`;
+            rekapDiv.innerText = `Jumlah: Hadir = ${H}, Izin = ${I}, Sakit = ${S}, Alfa = ${A}`;
         }
 
 
@@ -321,7 +328,7 @@
             const headers = ["No", "Nama", "Kelas", "Absen"];
             const trs = document.querySelectorAll("#absenTable tbody tr");
 
-            let H = 0, I = 0, A = 0;
+            let H = 0, I = 0, S = 0, A = 0;
 
             trs.forEach(tr => {
                 const tds = tr.querySelectorAll("td");
@@ -329,6 +336,7 @@
                 const status = absen ? absen.value : "";
                 if (status === "H") H++;
                 if (status === "I") I++;
+                if (status === "S") S++;
                 if (status === "A") A++;
                 rows.push([tds[0].innerText, tds[1].innerText, tds[2].innerText, status]);
             });
@@ -353,7 +361,7 @@
             const afterTableY = doc.lastAutoTable.finalY + 10;
 
             // Tambahkan rekap HIA
-            doc.text(`Rekap: Hadir = ${H}, Izin = ${I}, Alfa = ${A}`, 10, afterTableY);
+            doc.text(`Rekap: Hadir = ${H}, Izin = ${I}, Sakit = ${S}, Alfa = ${A}`, 10, afterTableY);
 
             // Tanda tangan bawah
             const tandaY = afterTableY + 10;
